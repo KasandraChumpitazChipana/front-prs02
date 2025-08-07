@@ -243,9 +243,9 @@ const PatientsList = () => {
                             <div className="avatar-initials" style={{ display: 'none' }}>
                                 {`${record.firstname.charAt(0)}${record.lastname.charAt(0)}`}
                             </div>
-                            {/* Indicador de estado online/offline */}
-                            <div className={`status-indicator ${record.isActive() ? 'online' : 'offline'}`}></div>
                         </div>
+                        {/* Indicador de estado online/offline - AFUERA del avatar */}
+                        <div className={`status-indicator-outside ${record.isActive() ? 'online' : 'offline'}`}></div>
                     </div>
                     <div className="user-info">
                         <h6 className="user-name mb-1">
@@ -587,6 +587,8 @@ const PatientsList = () => {
                 /* Avatar Container Styles */
                 .avatar-container {
                     position: relative;
+                    display: flex;
+                    align-items: center;
                 }
                 
                 .avatar-wrapper {
@@ -629,36 +631,37 @@ const PatientsList = () => {
                     text-transform: uppercase;
                 }
                 
-                /* Status Indicator */
-                .status-indicator {
+                /* Status Indicator OUTSIDE avatar */
+                .status-indicator-outside {
                     position: absolute;
-                    bottom: 2px;
-                    right: 2px;
-                    width: 14px;
-                    height: 14px;
+                    bottom: -2px;
+                    right: -2px;
+                    width: 18px;
+                    height: 18px;
                     border-radius: 50%;
-                    border: 2px solid white;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                    border: 3px solid white;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                    z-index: 10;
                 }
                 
-                .status-indicator.online {
+                .status-indicator-outside.online {
                     background-color: #52c41a;
                     animation: pulse-green 2s infinite;
                 }
                 
-                .status-indicator.offline {
+                .status-indicator-outside.offline {
                     background-color: #ff4d4f;
                 }
                 
                 @keyframes pulse-green {
                     0% {
-                        box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.7);
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(82, 196, 26, 0.7);
                     }
                     70% {
-                        box-shadow: 0 0 0 5px rgba(82, 196, 26, 0);
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 8px rgba(82, 196, 26, 0);
                     }
                     100% {
-                        box-shadow: 0 0 0 0 rgba(82, 196, 26, 0);
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(82, 196, 26, 0);
                     }
                 }
                 

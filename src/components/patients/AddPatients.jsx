@@ -46,9 +46,9 @@ const AddPatients = () => {
 
   const [roleOptions] = useState([
     { value: 'ADMIN', label: 'Administrador' },
-    { value: 'DOCTOR', label: 'Doctor' },
-    { value: 'NURSE', label: 'Enfermero' },
-    { value: 'PATIENT', label: 'Paciente' }
+    { value: 'SUPERADMIN', label: 'Super Administrador' },
+    { value: 'USUARIO', label: 'Usuario' },
+    { value: 'ESCOLAR', label: 'Escolar' }
   ]);
 
   const [statusOptions] = useState([
