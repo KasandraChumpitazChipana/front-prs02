@@ -1,27 +1,19 @@
-import User from '../types/institution';
+import axios from 'axios';
 
 class InstitutionService {
   constructor() {
-    this.apiUrl = 'https://mocki.io/v1/5d9b9c36-1a59-4b31-ac58-f8bc519e11af';
+    this.apiUrl = 'https://lab.vallegrande.edu.pe/school/ms-institution/api/v1/institutions';
   }
 
-  async getCurrentInstitution() {
+  async getAllInstitutions() {
     try {
-      const response = await fetch(this.apiUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Error fetching user profile: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return new User(data);
+      const response = await axios.get(this.apiUrl);
+      return response.data;
     } catch (error) {
-      console.error('Error in InstitutionService.getCurrentUser:', error);
+      console.error('Error al obtener instituciones:', error);
       throw error;
     }
   }
-
-
 }
 
 export default new InstitutionService();

@@ -1,1166 +1,388 @@
-/* eslint-disable react/jsx-no-duplicate-props */
-/* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+/* eslint-disable react/no-unescaped-entities */
+import React, { useState, useEffect, Fragment } from "react";
 import Header from "../Header";
+import 'react-calendar/dist/Calendar.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import Sidebar from "../Sidebar";
-import { DatePicker} from "antd";
-import FeatherIcon from "feather-icons-react/build/FeatherIcon";
-import Select from 'react-select';
-import { Link } from 'react-router-dom';
-import { pdficon, pdficon2, pdficon3, pdficon4, plusicon, refreshicon, searchnormal } from "../imagepath";
+import { Link } from "react-router-dom";
+import AttendanceForm from "./AttendanceForm";
+import EditAttendanceForm from "./EditAttendanceForm";
+
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'PRESENTE':
+      return 'bg-success';
+    case 'TARDE':
+      return 'bg-warning';
+    case 'AUSENTE':
+      return 'bg-danger';
+    default:
+      return 'bg-secondary';
+  }
+};
+
 const Attendence = () => {
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [month, setMonth] = useState([
-    { value: 1, label: "Select Month" },
-    { value: 2, label: "December" },
-    { value: 3, label: "November" },
-    { value: 4, label: "October" },
-    { value: 5, label: "September" },
-  ]);
-  const [year, setYear] = useState([
-    // { value: 1, label: "Select Year" },
-    { value: 2, label: "2022" },
-    { value: 3, label: "2021" },
-    { value: 4, label: "2020" },
-    { value: 5, label: "2019" },
-    { value: 6, label: "2018" },
-  ]);
-  const onChange = (date, dateString) => {
-    // console.log(date, dateString);
+  const [students, setStudents] = useState([]);
+  const [activeAttendances, setActiveAttendances] = useState([]);
+  const [inactiveAttendances, setInactiveAttendances] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editAttendance, setEditAttendance] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newAttendance, setNewAttendance] = useState({
+    studentId: '',
+    institutionId: '001',
+    classroomId: 'A1',
+    date: new Date().toISOString().split('T')[0],
+    status: 'PRESENTE',
+    active: true,
+    justified: false
+  });
+
+  const fetchStudents = async () => {
+    try {
+      const res = await fetch('https://ms.attendance.machashop.top/students');
+      if (!res.ok) throw new Error('Failed to fetch students');
+      const data = await res.json();
+      setStudents(data);
+    } catch (err) {
+      console.error(err.message);
+    }
+  };
+
+  const fetchActiveAttendances = async () => {
+    try {
+      const res = await fetch('https://ms.attendance.machashop.top/attendances');
+      if (!res.ok) throw new Error('Failed to fetch active attendances');
+      const data = await res.json();
+      const combined = data.map(att => {
+        const student = students.find(s => s.id === att.studentId);
+        return {
+          ...att,
+          studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown Student',
+        };
+      });
+      setActiveAttendances(combined);
+    } catch (err) {
+      console.error(err.message);
+    }
+  };
+
+  const fetchInactiveAttendances = async () => {
+    try {
+      const res = await fetch('https://ms.attendance.machashop.top/attendances/inactive');
+      if (!res.ok) throw new Error('Failed to fetch inactive attendances');
+      const data = await res.json();
+      const combined = data.map(att => {
+        const student = students.find(s => s.id === att.studentId);
+        return {
+          ...att,
+          studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown Student',
+        };
+      });
+      setInactiveAttendances(combined);
+    } catch (err) {
+      console.error(err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  useEffect(() => {
+    if (students.length > 0) {
+      fetchActiveAttendances();
+      fetchInactiveAttendances();
+    }
+  }, [students]);
+
+  const createAttendance = async (attendanceData) => {
+    try {
+      const res = await fetch('https://ms.attendance.machashop.top/attendances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attendanceData)
+      });
+
+      if (!res.ok) throw new Error('Failed to create attendance');
+
+      const created = await res.json();
+      setActiveAttendances(prev => [...prev, created]);
+      alert('Attendance created successfully!');
+      setShowForm(false);
+      setNewAttendance({
+        studentId: '',
+        institutionId: '001',
+        classroomId: 'A1',
+        date: new Date().toISOString().split('T')[0],
+        status: 'PRESENTE',
+        active: true,
+        justified: false
+      });
+    } catch (err) {
+      alert('Error creating attendance: ' + err.message);
+    }
+  };
+
+  const refreshData = async () => {
+    await fetchActiveAttendances();
+    await fetchInactiveAttendances();
+  };
+
+  const deleteAttendance = async (id) => {
+    try {
+      const confirmed = window.confirm('Are you sure you want to delete this attendance?');
+      if (!confirmed) return;
+
+      const response = await fetch(`https://ms.attendance.machashop.top/attendances/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete attendance');
+      }
+
+      setActiveAttendances(prev => prev.filter(a => a.id !== id));
+      alert('Attendance deleted successfully!');
+    } catch (error) {
+      alert('Error deleting attendance: ' + error.message);
+    }
+  };
+
+  const restoreAttendance = async (id) => {
+    try {
+      const confirmed = window.confirm('Are you sure you want to restore this attendance?');
+      if (!confirmed) return;
+
+      const response = await fetch(`https://ms.attendance.machashop.top/attendance/${id}/restore`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to restore attendance');
+      }
+
+      // Update both active and inactive lists
+      setInactiveAttendances(prev => prev.filter(a => a.id !== id));
+      const responseActive = await fetch('https://ms.attendance.machashop.top/attendances');
+      if (!responseActive.ok) throw new Error('Failed to fetch updated active attendances');
+      const data = await responseActive.json();
+      const combined = data.map(att => {
+        const student = students.find(s => s.id === att.studentId);
+        return {
+          ...att,
+          studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown Student',
+        };
+      });
+      setActiveAttendances(combined);
+      alert('Attendance restored successfully!');
+    } catch (error) {
+      alert('Error restoring attendance: ' + error.message);
+    }
+  };
+
+  const filterAttendances = (term) => {
+    const filtered = activeAttendances.filter(a =>
+      a.studentName?.toLowerCase().includes(term.toLowerCase()) ||
+      a.studentId?.toLowerCase().includes(term.toLowerCase()) ||
+      a.classroomId?.toLowerCase().includes(term.toLowerCase()) ||
+      a.date?.toLowerCase().includes(term.toLowerCase()) ||
+      a.status?.toLowerCase().includes(term.toLowerCase()) ||
+      a.institutionId?.toLowerCase().includes(term.toLowerCase())
+    );
+    setActiveAttendances(filtered);
   };
 
   return (
-    <>
+    <Fragment>
       <div className="main-wrapper">
         <Header />
-        <Sidebar id='menu-item3' id1='menu-items3' activeClassName='attendance'/>
+        <Sidebar id="menu-item3" id1="menu-items3" activeClassName="attendance" />
         <div className="page-wrapper">
           <div className="content">
-            {/* Page Header */}
             <div className="page-header">
               <div className="row">
                 <div className="col-sm-12">
                   <ul className="breadcrumb">
-                    <li className="breadcrumb-item">
-                     <Link to="#">Staffs </Link>
-                    </li>
-                    <li className="breadcrumb-item">
-                      <i className="feather-chevron-right">
-                        <FeatherIcon icon="chevron-right" />
-                      </i>
-                    </li>
-                    <li className="breadcrumb-item active">Attandance Sheet</li>
+                    <li className="breadcrumb-item"><Link to="#">Staffs</Link></li>
+                    <li className="breadcrumb-item">Attendance</li>
                   </ul>
                 </div>
               </div>
             </div>
-            {/* /Page Header */}
-            <div className="row">
-              <div className="col-sm-12">
-                <div className="card card-table show-entire">
-                  <div className="card-body">
-                    {/* Table Header */}
-                    <div className="page-table-header mb-2">
-                      <div className="row align-items-center">
-                        <div className="col">
-                          <div className="doctor-table-blk">
-                            <h3>Attandance Sheet</h3>
-                            <div className="doctor-search-blk">
-                              <div className="top-nav-search table-search-blk">
-                                <form>
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search here"
-                                  />
-                                 <Link className="btn">
-                                    <img
-                                      src={searchnormal}
-                                      alt="#"
-                                    />
-                                  </Link>
-                                </form>
-                              </div>
-                              <div className="add-group">
-                               <Link
-                                  to="#"
-                                  className="btn btn-primary add-pluss ms-2"
-                                >
-                                  <img src={plusicon} alt="#" />
-                                </Link>
-                               <Link
-                                  to="#"
-                                  className="btn btn-primary doctor-refresh ms-2"
-                                >
-                                  <img
-                                    src={refreshicon}
-                                    alt="#"
-                                  />
-                                </Link>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-auto text-end float-end ms-auto download-grp">
-                         <Link to="#" className=" me-2">
-                            <img
-                              src={pdficon}
-                              alt="#"
-                            />
-                          </Link>
-                         <Link to="#" className=" me-2">
-                            <img
-                              src={pdficon2}
-                              alt="#"
-                            />
-                          </Link>
-                         <Link to="#" className=" me-2">
-                            <img
-                              src={pdficon3}
-                              alt="#"
-                            />
-                          </Link>
-                         <Link to="#">
-                            <img
-                              src={pdficon4}
-                              alt="#"
-                            />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                    {/* /Table Header */}
-                    <div className="staff-search-table">
-                      <form>
-                        <div className="row">
-                          <div className="col-12 col-md-6 col-xl-4">
-                            <div className="form-group local-forms">
-                              <label>Employee Name </label>
-                              <input className="form-control" type="text" />
-                            </div>
-                          </div>
-                          <div className="col-12 col-md-6 col-xl-4">
-                            <div className="form-group local-forms">
-                              <label>Year </label>
-                              <Select
-                              defaultValue={selectedOption}
-                              onChange={setSelectedOption}
-                              options={year}
-                              menuPortalTarget={document.body}
-                              styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                              id="search-commodity"
-                              components={{
-                                IndicatorSeparator: () => null
-                              }}
 
-                              styles={{
-                                control: (baseStyles, state) => ({
-                                  ...baseStyles,
-                                  borderColor: state.isFocused ?'none' : '2px solid rgba(46, 55, 164, 0.1);',
-                                   boxShadow: state.isFocused ? '0 0 0 1px #2e37a4' : 'none',
-                                  '&:hover': {
-                                    borderColor: state.isFocused ? 'none' : '2px solid rgba(46, 55, 164, 0.1)',
-                                  },
-                                  borderRadius: '10px',
-                                  fontSize: "14px",
-                                    minHeight: "45px",
-                                }),
-                                dropdownIndicator: (base, state) => ({
-                                  ...base,
-                                  transform: state.selectProps.menuIsOpen ? 'rotate(-180deg)' : 'rotate(0)',
-                                  transition: '250ms',
-                                  width: '35px',
-                                  height: '35px',
-                                }),
-                              }}
-                            />
+            <div className="card">
+              <div className="card-header d-flex justify-content-between">
+                <h4 className="card-title">Attendance Records</h4>
+                <div>
+                  <button className="btn btn-primary me-2" onClick={() => setShowForm(true)}>Create Attendance</button>
+                  <button className="btn btn-light" onClick={refreshData}>
+                    <FontAwesomeIcon icon={faSyncAlt} /> Refresh
+                  </button>
+                </div>
+              </div>
+              <div className="card-header">
+                <ul className="nav nav-tabs">
+                  <li className="nav-item">
+                    <a className="nav-link active" data-bs-toggle="tab" href="#active-tab">Active</a>
+                  </li>
+                  <li className="nav-item">
+                    <a className="nav-link" data-bs-toggle="tab" href="#inactive-tab">Inactive</a>
+                  </li>
+                </ul>
+              </div>
+              <div className="card-body">
+                {showForm && (
+                  <AttendanceForm
+                    newAttendance={newAttendance}
+                    setNewAttendance={setNewAttendance}
+                    createAttendance={createAttendance}
+                    setShowForm={setShowForm}
+                    students={students}
+                  />
+                )}
+                {showEditForm && editAttendance && (
+                  <EditAttendanceForm
+                    attendance={editAttendance}
+                    onEdit={(updated) => {
+                      setActiveAttendances(prev =>
+                        prev.map(a => a.id === updated.id ? updated : a)
+                      );
+                    }}
+                    onClose={() => {
+                      setEditAttendance(null);
+                      setShowEditForm(false);
+                    }}
+                    students={students}
+                  />
+                )}
 
-                            </div>
-                          </div>
-                          <div className="col-12 col-md-6 col-xl-4">
-                            <div className="form-group local-forms">
-                              <label>Month </label>
-                              <Select
-                              defaultValue={selectedOption}
-                              onChange={setSelectedOption}
-                              options={month}
-                              menuPortalTarget={document.body}
-                              styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                              id="search-commodity"
-                              components={{
-                                IndicatorSeparator: () => null
-                              }}
+                <div className="input-group mb-4">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search attendances..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      filterAttendances(e.target.value);
+                    }}
+                  />
+                  <button className="btn btn-outline-secondary" onClick={() => setSearchTerm('')}>Clear</button>
+                </div>
 
-                              styles={{
-                                control: (baseStyles, state) => ({
-                                  ...baseStyles,
-                                  borderColor: state.isFocused ?'none' : '2px solid rgba(46, 55, 164, 0.1);',
-                                   boxShadow: state.isFocused ? '0 0 0 1px #2e37a4' : 'none',
-                                  '&:hover': {
-                                    borderColor: state.isFocused ? 'none' : '2px solid rgba(46, 55, 164, 0.1)',
-                                  },
-                                  borderRadius: '10px',
-                                  fontSize: "14px",
-                                    minHeight: "45px",
-                                }),
-                                dropdownIndicator: (base, state) => ({
-                                  ...base,
-                                  transform: state.selectProps.menuIsOpen ? 'rotate(-180deg)' : 'rotate(0)',
-                                  transition: '250ms',
-                                  width: '35px',
-                                  height: '35px',
-                                }),
-                              }}
-                            />
-
-                            </div>
-                          </div>
-                          <div className="col-12 col-md-6 col-xl-4">
-                            <div className="form-group local-forms cal-icon">
-                              <label>From </label>
-                              <DatePicker
-                                className="form-control datetimepicker"
-                                onChange={onChange}
-                                suffixIcon={null}
-                              />
-                              {/* <input
-                        className="form-control datetimepicker"
-                        type="text"
-                      /> */}
-                            </div>
-                          </div>
-                          <div className="col-12 col-md-6 col-xl-4">
-                            <div className="form-group local-forms cal-icon">
-                              <label>To </label>
-                              <DatePicker
-                                className="form-control datetimepicker"
-                                onChange={onChange}
-                                suffixIcon={null}
-                              />
-                              {/* <input
-                        className="form-control datetimepicker"
-                        type="text"
-                      /> */}
-                            </div>
-                          </div>
-                          <div className="col-12 col-md-6 col-xl-4">
-                            <div className="doctor-submit">
-                              <button
-                                type="submit"
-                                className="btn btn-primary submit-list-form me-2"
-                              >
-                                Submit
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
+                <div className="tab-content">
+                  <div className="tab-pane fade show active" id="active-tab">
                     <div className="table-responsive">
-                      <table className="table border-0 custom-table attent-table datatable mb-0">
+                      <table className="table table-hover table-center mb-0">
                         <thead>
                           <tr>
-                            <th>September</th>
-                            <th>01</th>
-                            <th>02</th>
-                            <th>03</th>
-                            <th>04</th>
-                            <th>05</th>
-                            <th className="week-days">06</th>
-                            <th className="week-days">07</th>
-                            <th>08</th>
-                            <th>09</th>
-                            <th>10</th>
-                            <th>11</th>
-                            <th>12</th>
-                            <th className="week-days">13</th>
-                            <th className="week-days">14</th>
-                            <th>15</th>
-                            <th>16</th>
-                            <th>17</th>
-                            <th>18</th>
-                            <th>19</th>
-                            <th className="week-days">20</th>
-                            <th className="week-days">21</th>
-                            <th>22</th>
-                            <th>23</th>
-                            <th>24</th>
-                            <th>25</th>
-                            <th>26</th>
-                            <th className="week-days">27</th>
-                            <th className="week-days">28</th>
-                            <th>29</th>
-                            <th>30</th>
-                            <th>31</th>
+                            <th>Student Name</th>
+                            <th>Student ID</th>
+                            <th>Classroom</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Institution</th>
+                            <th>Active</th>
+                            <th>Justified</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
+                          {activeAttendances.map((attendance) => (
+                            <tr key={attendance.id}>
+                              <td>{attendance.studentName}</td>
+                              <td>{attendance.studentId}</td>
+                              <td>{attendance.classroomId}</td>
+                              <td>{attendance.date}</td>
+                              <td><span className={`badge ${getStatusClass(attendance.status)}`}>{attendance.status}</span></td>
+                              <td>{attendance.institutionId || 'N/A'}</td>
+                              <td><span className={`badge ${attendance.active ? 'bg-success' : 'bg-danger'}`}>{attendance.active ? 'Yes' : 'No'}</span></td>
+                              <td><span className={`badge ${attendance.justified ? 'bg-success' : 'bg-danger'}`}>{attendance.justified ? 'Yes' : 'No'}</span></td>
+                              <td>
+                                <button
+                                  className="btn btn-sm btn-primary me-2"
+                                  onClick={() => {
+                                    setEditAttendance(attendance);
+                                    setShowEditForm(true);
+                                  }}
+                                >
+                                  <i className="bi bi-pencil"></i> Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => deleteAttendance(attendance.id)}
+                                >
+                                  <i className="bi bi-trash"></i> Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="tab-pane fade" id="inactive-tab">
+                    <div className="table-responsive">
+                      <table className="table table-hover table-center mb-0">
+                        <thead>
                           <tr>
-                            <td className="month-table">
-                              <h5>Andrea Lalema</h5>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                  <FeatherIcon icon="check" />
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                  <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
+                            <th>Student Name</th>
+                            <th>Student ID</th>
+                            <th>Classroom</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Institution</th>
+                            <th>Active</th>
+                            <th>Justified</th>
+                            <th>Actions</th>
                           </tr>
-                          <tr>
-                            <td className="month-table">
-                              <h5>Smith Bruklin</h5>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="month-table">
-                              <h5>Galaviz Lalema</h5>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="month-table">
-                              <h5>Mark Hay Smith</h5>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x">
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check" />
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="month-table">
-                              <h5>Cristina Groves</h5>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check" />
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="present-table attent-status">
-                                <i className="feather-check">
-                                <FeatherIcon icon="check"/>
-                                </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td />
-                            <td />
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                            <td>
-                              <span className="absent-table attent-status">
-                                <i className="feather-x" >
-                                <FeatherIcon icon="x"/>
-                                  </i>
-                              </span>
-                            </td>
-                          </tr>
+                        </thead>
+                        <tbody>
+                          {inactiveAttendances.map((attendance) => (
+                            <tr key={attendance.id}>
+                              <td>{attendance.studentName}</td>
+                              <td>{attendance.studentId}</td>
+                              <td>{attendance.classroomId}</td>
+                              <td>{attendance.date}</td>
+                              <td><span className={`badge ${getStatusClass(attendance.status)}`}>{attendance.status}</span></td>
+                              <td>{attendance.institutionId || 'N/A'}</td>
+                              <td><span className={`badge ${attendance.active ? 'bg-success' : 'bg-danger'}`}>{attendance.active ? 'Yes' : 'No'}</span></td>
+                              <td><span className={`badge ${attendance.justified ? 'bg-success' : 'bg-danger'}`}>{attendance.justified ? 'Yes' : 'No'}</span></td>
+                              <td>
+                                <button
+                                  className="btn btn-sm btn-primary me-2"
+                                  onClick={() => {
+                                    setEditAttendance(attendance);
+                                    setShowEditForm(true);
+                                  }}
+                                >
+                                  <i className="bi bi-pencil"></i> Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-success me-2"
+                                  onClick={() => restoreAttendance(attendance.id)}
+                                >
+                                  <i className="bi bi-arrow-counterclockwise"></i> Restore
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => deleteAttendance(attendance.id)}
+                                >
+                                  <i className="bi bi-trash"></i> Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -1169,261 +391,9 @@ const Attendence = () => {
               </div>
             </div>
           </div>
-          <div className="notification-box">
-            <div className="msg-sidebar notifications msg-noti">
-              <div className="topnav-dropdown-header">
-                <span>Messages</span>
-              </div>
-              <div className="drop-scroll msg-list-scroll" id="msg_list">
-                <ul className="list-box">
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">R</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">Richard Miles </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item new-message">
-                        <div className="list-left">
-                          <span className="avatar">J</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">John Doe</span>
-                          <span className="message-time">1 Aug</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">T</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">
-                            {" "}
-                            Tarah Shropshire{" "}
-                          </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">M</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">Mike Litorus</span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">C</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">
-                            {" "}
-                            Catherine Manseau{" "}
-                          </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">D</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">
-                            {" "}
-                            Domenic Houston{" "}
-                          </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">B</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">
-                            {" "}
-                            Buster Wigton{" "}
-                          </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">R</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">
-                            {" "}
-                            Rolland Webber{" "}
-                          </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">C</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author"> Claire Mapes </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">M</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">Melita Faucher</span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">J</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">Jeffery Lalor</span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">L</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">Loren Gatlin</span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                   <Link to="#">
-                      <div className="list-item">
-                        <div className="list-left">
-                          <span className="avatar">T</span>
-                        </div>
-                        <div className="list-body">
-                          <span className="message-author">
-                            Tarah Shropshire
-                          </span>
-                          <span className="message-time">12:28 AM</span>
-                          <div className="clearfix" />
-                          <span className="message-content">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div className="topnav-dropdown-footer">
-               <Link to="#">See all messages</Link>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
-    </>
+    </Fragment>
   );
 };
 

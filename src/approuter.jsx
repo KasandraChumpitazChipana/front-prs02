@@ -11,6 +11,7 @@ import Auth from "./pages/auth/auth";
 import Admin from "./pages/admin/admin";
 import Principal from "./pages/principal/principal";
 import Teacher from "./pages/teacher/teacher";
+import Directors from "./pages/directors/directors";
 
 //Accounts
 const Approuter = () => {
@@ -25,6 +26,7 @@ const Approuter = () => {
           <Route path="/admin" element={<Admin />} />
           <Route path="/principal" element={<Principal />} />
           <Route path="/teacher" element={<Teacher />} />
+          <Route path="/directors/*" element={<Directors />} />
 
           {AppRoutes.map((route) => route)}
         </Routes>

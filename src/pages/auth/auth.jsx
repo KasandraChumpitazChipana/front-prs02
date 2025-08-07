@@ -61,7 +61,7 @@ const Auth = () => {
                           <img src={loginlogo} alt="#" />
                         </Link>
                       </div>
-                      <h2>Auth</h2>
+                      <h2>EduAssist</h2>
                       {/* Form */}
                       <form >
                         <div className="form-group">
@@ -72,7 +72,7 @@ const Auth = () => {
                         </div>
                         <div className="form-group">
                           <label>
-                            Password <span className="login-danger">*</span>
+                            Contraseña <span className="login-danger">*</span>
                           </label>
                           <input
                             type={passwordVisible ? 'password' : ''}
@@ -91,39 +91,46 @@ const Auth = () => {
                           <div className="remember-me">
                             <label className="custom_check mr-2 mb-0 d-inline-flex remember-me">
                               {" "}
-                              Remember me
+                              Recuerdame
                               <input type="checkbox" name="radio" />
                               <span className="checkmark" />
                             </label>
                           </div>
-                          <Link to="/forgotpassword">Forgot Password?</Link>
+                          <Link to="/forgotpassword">Olvidaste tu contraseña?</Link>
                         </div>
                         <div className="form-group login-btn">
                           <Link to="/admin"
                             className="btn btn-primary btn-block"
                           >
-                            Admin
+                            Administrador
                           </Link>
                         </div>
                         <div className="form-group login-btn">
                           <Link to="/principal"
                             className="btn btn-primary btn-block"
                           >
-                            Principal
+                            Director
                           </Link>
                         </div>
                               <div className="form-group login-btn">
                           <Link to="/teacher"
                             className="btn btn-primary btn-block"
                           >
-                            Teacher
+                            Profesor
+                          </Link>
+                        </div>
+                        <div className="form-group login-btn">
+                          <Link to="/directors"
+                            className="btn btn-primary btn-block"
+                          >
+                            Directors
                           </Link>
                         </div>
                       </form>
                       {/* /Form */}
                       <div className="next-sign">
                         <p className="account-subtitle">
-                          Need an account? <Link to="/signup">Sign Up</Link>
+                          Necesitas una cuenta? <Link to="/signup">Registrate</Link>
                         </p>
                         {/* Social Auth */}
                         <div className="social-login">

@@ -10,8 +10,8 @@ import DoctorProfile from "./doctor/DoctorProfile";
 //Patients...
 import PatientsList from "./patients/PatientsList";
 import AddPatients from "./patients/AddPatients";
-import EditPatients from "./patients/EditPatients";
-import PatientsProfile from "./patients/PatientsProfile";
+// import EditPatients from "./patients/EditPatients"; // REMOVIDO
+// import PatientsProfile from "./patients/PatientsProfile"; // REMOVIDO
 import AppoinmentList from "./appoinments/AppoinmentList";
 import AddAppoinments from "./appoinments/AddAppoinments";
 import EditAppoinments from "./appoinments/EditAppoinments";
@@ -76,12 +76,22 @@ import Typography from "./Ui_Elements/Typography";
 import ServerError from "./pages/login/ServerError";
 import EditEmployeeSalery from "./Payroll/EmployeeSalary/EditEmployeeSalery";
 
+//Students
+import StudentList from "../pages/students/StudentList";
+import AddStudent from "../pages/students/AddStudent";
+import EditStudent from "../pages/students/EditStudent";
+import StudentProfile from "../pages/students/StudentProfile";
+//Enrollments
+import EnrollmentList from "../pages/enrollments/EnrollmentList";
+import AddEnrollment from "../pages/enrollments/AddEnrollment";
+import EditEnrollment from "../pages/enrollments/EditEnrollment";
+
 import BlankPage from "./pages/login/BlankPage";
 import Doctor_Dashboard from "./Dashboard/Doctor_Dashboard/Doctor_Dashboard";
 import Admin_Dashboard from "./Dashboard/Admin_Dashboard/Admin_Dashboard";
 import Patient_Dashboard from "./Dashboard/Patient_Dashboard/Patient_Dashboard";
 import Doctor_Settings from "./Dashboard/Doctor_Dashboard/Doctor_Settings";
-import Patient_Settings from "./patients/Patient_Settings";
+// import Patient_Settings from "./patients/Patient_Settings"; // REMOVIDO
 import Staff_Settings from "./staff/Staff-Settings";
 import Edit_Provident from "./accounts/Edit_Provident";
 import Edit_Taxes from "./accounts/Edit_Taxes";
@@ -90,7 +100,12 @@ import Edit_Payment from "./accounts/Edit_Payment";
 import Payslip from "./Payroll/Payslip";
 import Setting from "./settings/Setting";
 import Profile from "./Profile";
+
+import Justifications from "./staff/Justifications";
+
 const AppRoutes = [
+  <Route key="attendances" path="/attendances" element={<Attendence />} />,
+  <Route key="Justifications" path="/Justifications" element={<Justifications />} />,
   <Route key="server-error" path="/server-error" element={<ServerError />} />,
   <Route key="blankpage" path="/blankpage" element={<BlankPage />} />,
   <Route key="profile" path="/profile" element={<Profile />} />,
@@ -103,9 +118,9 @@ const AppRoutes = [
   <Route key="doctor-setting" path="/doctor-setting" element={<Doctor_Settings />} />,
   <Route key="patientslist" path="/patientslist" element={<PatientsList />} />,
   <Route key="addpatients" path="/addpatients" element={<AddPatients />} />,
-  <Route key="editpatients" path="/editpatients" element={<EditPatients />} />,
-  <Route key="patientsprofile" path="/patientsprofile" element={<PatientsProfile />} />,
-  <Route key="patient-settings" path="/patient-settings" element={<Patient_Settings />} />,
+  // <Route key="editpatients" path="/editpatients" element={<EditPatients />} />, // REMOVIDO
+  // <Route key="patientsprofile" path="/patientsprofile" element={<PatientsProfile />} />, // REMOVIDO
+  // <Route key="patient-settings" path="/patient-settings" element={<Patient_Settings />} />, // REMOVIDO
   <Route key="appoinmentlist" path="/appoinmentlist" element={<AppoinmentList />} />,
   <Route key="addappoinments" path="/addappoinments" element={<AddAppoinments />} />,
   <Route key="editappoinments" path="/editappoinments" element={<EditAppoinments />} />,
@@ -172,8 +187,15 @@ const AppRoutes = [
   <Route key="basic-table" path="/basic-table" element={<BasicTable />} />,
   <Route key="data-table" path="/data-table" element={<DataTable />} />,
   <Route key="admin-dashboard" path="/admin-dashboard" element={<Admin_Dashboard />} />,
-  <Route key="doctor-dashboard" path="/doctor-dashboard" element={<Doctor_Dashboard />} />,
-  <Route key="patient-dashboard" path="/patient-dashboard" element={<Patient_Dashboard />} />
+  // Rutas de Estudiantes
+  <Route key="studentlist" path="/studentlist" element={<StudentList />} />,
+  <Route key="add-student" path="/add-student" element={<AddStudent />} />,
+  <Route key="editstudent" path="/editstudent/:id" element={<EditStudent />} />,
+  <Route key="studentprofile" path="/studentprofile/:id" element={<StudentProfile />} />,
+  // Rutas de Matrículas
+  <Route key="enrollmentlist" path="/enrollmentlist" element={<EnrollmentList />} />,
+  <Route key="add-enrollment" path="/add-enrollment" element={<AddEnrollment />} />,
+  <Route key="editenrollment" path="/editenrollment/:id" element={<EditEnrollment />} />
 ];
 
 export default AppRoutes;
