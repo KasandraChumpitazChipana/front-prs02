@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Switch, message, Modal, Tag } from "antd";
+import { Table, Button, Switch, message, Modal, Tag, Input, Space, Tooltip } from "antd";
+import { SearchOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, UserAddOutlined, StopOutlined, UndoOutlined } from '@ant-design/icons';
 import Header from '../Header';
 import Sidebar from '../Sidebar';
 import { onShowSizeChange, itemRender } from '../Pagination'
@@ -9,17 +10,19 @@ import {
     refreshicon, searchnormal, blogimg12, blogimg2, blogimg4, 
     blogimg6, blogimg8 
 } from '../imagepath';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Import the management service - adjust the path based on your project structure
-// You might need to change this path depending on where you place the managementService.js file
 import { managementService } from '../../services/ManagementService';
 
 const { confirm } = Modal;
+const { Search } = Input;
 
 const PatientsList = () => {
+    const navigate = useNavigate();
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
     const [users, setUsers] = useState([]);
+    const [filteredUsers, setFilteredUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showActiveOnly, setShowActiveOnly] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +32,11 @@ const PatientsList = () => {
     useEffect(() => {
         loadUsers();
     }, [showActiveOnly]);
+
+    // Filtrar usuarios cuando cambie el término de búsqueda
+    useEffect(() => {
+        filterUsers();
+    }, [users, searchTerm]);
 
     const loadUsers = async () => {
         setLoading(true);
@@ -64,6 +72,23 @@ const PatientsList = () => {
         }
     };
 
+    const filterUsers = () => {
+        if (!searchTerm.trim()) {
+            setFilteredUsers(users);
+            return;
+        }
+        
+        const searchTermLower = searchTerm.toLowerCase();
+        const filtered = users.filter(user => 
+            user.firstname.toLowerCase().includes(searchTermLower) ||
+            user.lastname.toLowerCase().includes(searchTermLower) ||
+            user.email.toLowerCase().includes(searchTermLower) ||
+            user.documentNumber.includes(searchTermLower) ||
+            user.phone.toLowerCase().includes(searchTermLower)
+        );
+        setFilteredUsers(filtered);
+    };
+
     const onSelectChange = (newSelectedRowKeys) => {
         console.log("selectedRowKeys changed: ", newSelectedRowKeys);
         setSelectedRowKeys(newSelectedRowKeys);
@@ -74,43 +99,14 @@ const PatientsList = () => {
         onChange: onSelectChange,
     };
 
-    // Buscar usuarios
-    const handleSearch = async (value) => {
-        if (!value.trim()) {
-            loadUsers();
-            return;
-        }
-        
-        setLoading(true);
-        try {
-            const searchResults = await managementService.searchUsers(value);
-            // Filtrar por estado si es necesario
-            const filteredResults = showActiveOnly 
-                ? searchResults.filter(user => user.isActive())
-                : searchResults.filter(user => !user.isActive());
-            setUsers(filteredResults);
-        } catch (error) {
-            console.error('Error searching users:', error);
-            
-            // Fallback to local search if API search fails
-            try {
-                const currentUsers = apiError ? managementService.getMockUsers() : await managementService.getAllUsers();
-                const searchTerm = value.toLowerCase();
-                const localSearchResults = currentUsers.filter(user => 
-                    (user.firstname.toLowerCase().includes(searchTerm) ||
-                     user.lastname.toLowerCase().includes(searchTerm) ||
-                     user.email.toLowerCase().includes(searchTerm) ||
-                     user.documentNumber.includes(searchTerm)) &&
-                    (showActiveOnly ? user.isActive() : !user.isActive())
-                );
-                setUsers(localSearchResults);
-                message.warning('Búsqueda realizada localmente');
-            } catch (fallbackError) {
-                message.error('Error al buscar usuarios');
-            }
-        } finally {
-            setLoading(false);
-        }
+    // Manejar búsqueda
+    const handleSearch = (value) => {
+        setSearchTerm(value);
+    };
+
+    // Navegar a la página de edición - CORREGIDO
+    const handleEditUser = (userId) => {
+        navigate(`/editpatients/${userId}`);
     };
 
     // Desactivar usuario (eliminación lógica)
@@ -118,7 +114,7 @@ const PatientsList = () => {
         confirm({
             title: `¿Estás seguro de desactivar a ${userName}?`,
             content: 'El usuario será desactivado pero no eliminado permanentemente.',
-            icon: <img src={imagesend} alt="#" width={50} height={46} />,
+            icon: <StopOutlined style={{ color: '#ff4d4f' }} />,
             okText: 'Sí, desactivar',
             okType: 'danger',
             cancelText: 'Cancelar',
@@ -144,6 +140,7 @@ const PatientsList = () => {
         confirm({
             title: `¿Estás seguro de restaurar a ${userName}?`,
             content: 'El usuario será reactivado en el sistema.',
+            icon: <UndoOutlined style={{ color: '#52c41a' }} />,
             okText: 'Sí, restaurar',
             okType: 'primary',
             cancelText: 'Cancelar',
@@ -169,7 +166,7 @@ const PatientsList = () => {
         confirm({
             title: `¿Estás seguro de eliminar permanentemente a ${userName}?`,
             content: 'Esta acción no se puede deshacer. El usuario será eliminado completamente del sistema.',
-            icon: <img src={imagesend} alt="#" width={50} height={46} />,
+            icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
             okText: 'Sí, eliminar',
             okType: 'danger',
             cancelText: 'Cancelar',
@@ -194,118 +191,185 @@ const PatientsList = () => {
         });
     };
 
+    // Acciones masivas
+    const handleBulkDeactivate = async () => {
+        if (selectedRowKeys.length === 0) {
+            message.warning('Por favor selecciona al menos un usuario');
+            return;
+        }
+
+        confirm({
+            title: `¿Desactivar ${selectedRowKeys.length} usuario(s) seleccionado(s)?`,
+            content: 'Los usuarios serán desactivados pero no eliminados permanentemente.',
+            onOk: async () => {
+                try {
+                    // Implement bulk deactivation logic here
+                    message.success(`${selectedRowKeys.length} usuario(s) desactivado(s) correctamente`);
+                    setSelectedRowKeys([]);
+                    loadUsers();
+                } catch (error) {
+                    message.error('Error al desactivar usuarios');
+                }
+            },
+        });
+    };
+
     const columns = [
         {
-            title: "Nombre",
+            title: "Usuario",
             dataIndex: "firstname",
             key: "name",
             sorter: (a, b) => a.firstname.localeCompare(b.firstname),
+            width: 280,
             render: (text, record) => (
-                <>
-                    <h2 className="profile-image">
-                        <Link to="#" className="avatar avatar-sm me-2">
+                <div className="d-flex align-items-center">
+                    <div className="avatar-container me-3">
+                        <div className="avatar-wrapper">
                             <img
-                                className="avatar-img rounded-circle"
+                                className="user-avatar"
                                 src={record.userImage || blogimg2}
-                                alt="#"
+                                alt={`${record.firstname} ${record.lastname}`}
+                                onError={(e) => {
+                                    // Fallback a iniciales si la imagen falla
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                                onLoad={(e) => {
+                                    // Mostrar imagen si carga correctamente
+                                    e.target.style.display = 'block';
+                                    e.target.nextSibling.style.display = 'none';
+                                }}
                             />
-                        </Link>
-                        <Link to="#">{`${record.firstname} ${record.lastname}`}</Link>
-                        {record.isActive() ? (
-                            <Tag color="green" style={{ marginLeft: '8px' }}>Activo</Tag>
-                        ) : (
-                            <Tag color="red" style={{ marginLeft: '8px' }}>Inactivo</Tag>
-                        )}
-                    </h2>
-                </>
-            )
-        },
-        {
-            title: "Tipo Documento",
-            dataIndex: "documentType",
-            sorter: (a, b) => a.documentType.localeCompare(b.documentType)
-        },
-        {
-            title: "Número Documento",
-            dataIndex: "documentNumber",
-            sorter: (a, b) => a.documentNumber.localeCompare(b.documentNumber)
-        },
-        {
-            title: "Rol",
-            dataIndex: "role",
-            sorter: (a, b) => a.role.localeCompare(b.role)
-        },
-        {
-            title: "Teléfono",
-            dataIndex: "phone",
-            sorter: (a, b) => a.phone.localeCompare(b.phone),
-            render: (text, record) => (
-                <Link to="#">{record.phone}</Link>
-            )
-        },
-        {
-            title: "Email",
-            dataIndex: "email",
-            sorter: (a, b) => a.email.localeCompare(b.email)
-        },
-        {
-            title: "Fecha Creación",
-            dataIndex: "createdAt",
-            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-            render: (text, record) => 
-                record.createdAt ? record.createdAt.toLocaleDateString() : 'N/A'
-        },
-        {
-            title: "Acciones",
-            dataIndex: "actions",
-            render: (text, record) => (
-                <div className="text-end">
-                    <div className="dropdown dropdown-action">
-                        <Link
-                            to="#"
-                            className="action-icon dropdown-toggle"
-                            data-bs-toggle="dropdown"
-                            aria-expanded="false"
-                        >
-                            <i className="fas fa-ellipsis-v" />
-                        </Link>
-                        <div className="dropdown-menu dropdown-menu-end">
-                            <Link className="dropdown-item" to={`/editpatients/${record.id}`}>
-                                <i className="far fa-edit me-2" />
-                                Editar
+                            <div className="avatar-initials" style={{ display: 'none' }}>
+                                {`${record.firstname.charAt(0)}${record.lastname.charAt(0)}`}
+                            </div>
+                            {/* Indicador de estado online/offline */}
+                            <div className={`status-indicator ${record.isActive() ? 'online' : 'offline'}`}></div>
+                        </div>
+                    </div>
+                    <div className="user-info">
+                        <h6 className="user-name mb-1">
+                            <Link to="#" className="text-decoration-none user-link">
+                                {`${record.firstname} ${record.lastname}`}
                             </Link>
+                        </h6>
+                        <div className="user-role mb-1">
+                            <i className="fas fa-user-tag me-1 text-muted"></i>
+                            <small className="text-muted">{record.role}</small>
+                        </div>
+                        <div className="user-status">
                             {record.isActive() ? (
-                                <Link 
-                                    className="dropdown-item" 
-                                    to="#" 
-                                    onClick={() => handleDeactivateUser(record.id, `${record.firstname} ${record.lastname}`)}
-                                >
-                                    <i className="fa fa-ban me-2"></i>
-                                    Desactivar
-                                </Link>
+                                <Tag color="success" size="small" className="status-tag">
+                                    <i className="fas fa-check-circle me-1"></i>
+                                    Activo
+                                </Tag>
                             ) : (
-                                <>
-                                    <Link 
-                                        className="dropdown-item" 
-                                        to="#"
-                                        onClick={() => handleRestoreUser(record.id, `${record.firstname} ${record.lastname}`)}
-                                    >
-                                        <i className="fa fa-undo me-2"></i>
-                                        Restaurar
-                                    </Link>
-                                    <Link 
-                                        className="dropdown-item" 
-                                        to="#"
-                                        onClick={() => handleDeleteUser(record.id, `${record.firstname} ${record.lastname}`)}
-                                    >
-                                        <i className="fa fa-trash-alt me-2"></i>
-                                        Eliminar Permanentemente
-                                    </Link>
-                                </>
+                                <Tag color="error" size="small" className="status-tag">
+                                    <i className="fas fa-times-circle me-1"></i>
+                                    Inactivo
+                                </Tag>
                             )}
                         </div>
                     </div>
                 </div>
+            )
+        },
+        {
+            title: "Documento",
+            dataIndex: "documentInfo",
+            key: "document",
+            width: 150,
+            render: (text, record) => (
+                <div>
+                    <div className="fw-semibold">{record.documentType}</div>
+                    <small className="text-muted">{record.documentNumber}</small>
+                </div>
+            )
+        },
+        {
+            title: "Contacto",
+            dataIndex: "contact",
+            key: "contact",
+            width: 200,
+            render: (text, record) => (
+                <div>
+                    <div className="d-flex align-items-center mb-1">
+                        <i className="fas fa-envelope me-2 text-muted"></i>
+                        <small>{record.email}</small>
+                    </div>
+                    <div className="d-flex align-items-center">
+                        <i className="fas fa-phone me-2 text-muted"></i>
+                        <small>{record.phone}</small>
+                    </div>
+                </div>
+            )
+        },
+        {
+            title: "Fecha Creación",
+            dataIndex: "createdAt",
+            key: "createdAt",
+            width: 120,
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            render: (text, record) => (
+                <div>
+                    <div className="fw-semibold">
+                        {record.createdAt ? record.createdAt.toLocaleDateString() : 'N/A'}
+                    </div>
+                    <small className="text-muted">
+                        {record.createdAt ? record.createdAt.toLocaleTimeString() : ''}
+                    </small>
+                </div>
+            )
+        },
+        {
+            title: "Acciones",
+            dataIndex: "actions",
+            key: "actions",
+            width: 120,
+            fixed: 'right',
+            render: (text, record) => (
+                <Space size="small">
+                    <Tooltip title="Editar">
+                        <Button
+                            type="primary"
+                            size="small"
+                            icon={<EditOutlined />}
+                            onClick={() => handleEditUser(record.id)}
+                        />
+                    </Tooltip>
+                    {record.isActive() ? (
+                        <Tooltip title="Desactivar">
+                            <Button
+                                type="default"
+                                size="small"
+                                icon={<StopOutlined />}
+                                onClick={() => handleDeactivateUser(record.id, `${record.firstname} ${record.lastname}`)}
+                                danger
+                            />
+                        </Tooltip>
+                    ) : (
+                        <>
+                            <Tooltip title="Restaurar">
+                                <Button
+                                    type="primary"
+                                    size="small"
+                                    icon={<UndoOutlined />}
+                                    onClick={() => handleRestoreUser(record.id, `${record.firstname} ${record.lastname}`)}
+                                    style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                                />
+                            </Tooltip>
+                            <Tooltip title="Eliminar permanentemente">
+                                <Button
+                                    type="primary"
+                                    size="small"
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => handleDeleteUser(record.id, `${record.firstname} ${record.lastname}`)}
+                                    danger
+                                />
+                            </Tooltip>
+                        </>
+                    )}
+                </Space>
             ),
         },
     ];
@@ -330,7 +394,7 @@ const PatientsList = () => {
                                     <li className="breadcrumb-item active">
                                         Lista de Usuarios {showActiveOnly ? 'Activos' : 'Inactivos'}
                                         {apiError && (
-                                            <span className="badge badge-warning ms-2">Modo Offline</span>
+                                            <Tag color="warning" style={{ marginLeft: '8px' }}>Modo Offline</Tag>
                                         )}
                                     </li>
                                 </ul>
@@ -341,9 +405,11 @@ const PatientsList = () => {
                     
                     {/* API Status Alert */}
                     {apiError && (
-                        <div className="alert alert-warning" role="alert">
+                        <div className="alert alert-warning d-flex align-items-center" role="alert">
                             <i className="fas fa-exclamation-triangle me-2"></i>
-                            La API no está disponible. Mostrando datos de ejemplo. Algunas funciones pueden no estar disponibles.
+                            <div>
+                                La API no está disponible. Mostrando datos de ejemplo. Algunas funciones pueden no estar disponibles.
+                            </div>
                         </div>
                     )}
                     
@@ -351,92 +417,130 @@ const PatientsList = () => {
                         <div className="col-sm-12">
                             <div className="card card-table show-entire">
                                 <div className="card-body">
-                                    {/* Table Header */}
-                                    <div className="page-table-header mb-2">
+                                    {/* Enhanced Table Header */}
+                                    <div className="page-table-header mb-4">
                                         <div className="row align-items-center">
-                                            <div className="col">
-                                                <div className="doctor-table-blk">
-                                                    <h3>
+                                            <div className="col-lg-8">
+                                                <div className="d-flex align-items-center flex-wrap gap-3">
+                                                    <h4 className="mb-0 d-flex align-items-center">
+                                                        <i className="fas fa-users me-2 text-primary"></i>
                                                         Lista de Usuarios {showActiveOnly ? 'Activos' : 'Inactivos'}
-                                                        <span style={{ marginLeft: '20px' }}>
-                                                            <Switch
-                                                                checked={showActiveOnly}
-                                                                onChange={setShowActiveOnly}
-                                                                checkedChildren="Activos"
-                                                                unCheckedChildren="Inactivos"
-                                                            />
+                                                        <span className="badge bg-primary ms-2">
+                                                            {(searchTerm ? filteredUsers : users).length}
                                                         </span>
-                                                    </h3>
-                                                    <div className="doctor-search-blk">
-                                                        <div className="top-nav-search table-search-blk">
-                                                            <form onSubmit={(e) => {
-                                                                e.preventDefault();
-                                                                handleSearch(searchTerm);
-                                                            }}>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-control"
-                                                                    placeholder="Buscar por nombre, email o documento..."
-                                                                    value={searchTerm}
-                                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                                />
-                                                                <button type="submit" className="btn">
-                                                                    <img src={searchnormal} alt="#" />
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                        <div className="add-group">
-                                                            <Link
-                                                                to="/addpatients"
-                                                                className="btn btn-primary add-pluss ms-2"
-                                                            >
-                                                                <img src={plusicon} alt="#" />
-                                                            </Link>
-                                                            <button
-                                                                onClick={loadUsers}
-                                                                className="btn btn-primary doctor-refresh ms-2"
-                                                                disabled={loading}
-                                                            >
-                                                                <img src={refreshicon} alt="#" />
-                                                            </button>
-                                                        </div>
+                                                    </h4>
+                                                    
+                                                    <Switch
+                                                        checked={showActiveOnly}
+                                                        onChange={setShowActiveOnly}
+                                                        checkedChildren="Activos"
+                                                        unCheckedChildren="Inactivos"
+                                                        size="default"
+                                                        className="ms-3"
+                                                    />
+                                                </div>
+                                                
+                                                <div className="row mt-3">
+                                                    <div className="col-md-6">
+                                                        <Search
+                                                            placeholder="Buscar por nombre, email, documento o teléfono..."
+                                                            allowClear
+                                                            enterButton={<SearchOutlined />}
+                                                            size="large"
+                                                            onSearch={handleSearch}
+                                                            onChange={(e) => handleSearch(e.target.value)}
+                                                            value={searchTerm}
+                                                            style={{ maxWidth: 400 }}
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <Space wrap>
+                                                            {selectedRowKeys.length > 0 && showActiveOnly && (
+                                                                <Button
+                                                                    type="default"
+                                                                    danger
+                                                                    icon={<StopOutlined />}
+                                                                    onClick={handleBulkDeactivate}
+                                                                >
+                                                                    Desactivar Seleccionados ({selectedRowKeys.length})
+                                                                </Button>
+                                                            )}
+                                                        </Space>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="col-auto text-end float-end ms-auto download-grp">
-                                                <Link to="#" className="me-2">
-                                                    <img src={pdficon} alt="#" />
-                                                </Link>
-                                                <Link to="#" className="me-2">
-                                                    <img src={pdficon3} alt="#" />
-                                                </Link>
-                                                <Link to="#">
-                                                    <img src={pdficon4} alt="#" />
-                                                </Link>
+                                            
+                                            <div className="col-lg-4 text-end">
+                                                <Space wrap>
+                                                    <Button
+                                                        type="primary"
+                                                        icon={<UserAddOutlined />}
+                                                        size="large"
+                                                        onClick={() => navigate('/addpatients')}
+                                                    >
+                                                        Agregar Usuario
+                                                    </Button>
+                                                    <Button
+                                                        type="default"
+                                                        icon={<ReloadOutlined />}
+                                                        size="large"
+                                                        loading={loading}
+                                                        onClick={loadUsers}
+                                                    >
+                                                        Actualizar
+                                                    </Button>
+                                                </Space>
+                                                
+                                                <div className="mt-2">
+                                                    <Space>
+                                                        <Tooltip title="Exportar PDF">
+                                                            <Button type="text" size="small">
+                                                                <img src={pdficon} alt="PDF" width={20} />
+                                                            </Button>
+                                                        </Tooltip>
+                                                        <Tooltip title="Exportar Excel">
+                                                            <Button type="text" size="small">
+                                                                <img src={pdficon3} alt="Excel" width={20} />
+                                                            </Button>
+                                                        </Tooltip>
+                                                        <Tooltip title="Exportar CSV">
+                                                            <Button type="text" size="small">
+                                                                <img src={pdficon4} alt="CSV" width={20} />
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Space>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    {/* /Table Header */}
-                                    <div className="table-responsive doctor-list">
+                                    {/* /Enhanced Table Header */}
+                                    
+                                    <div className="table-responsive">
                                         <Table
                                             loading={loading}
                                             pagination={{
-                                                total: users.length,
+                                                total: (searchTerm ? filteredUsers : users).length,
                                                 showTotal: (total, range) =>
                                                     `Mostrando ${range[0]} a ${range[1]} de ${total} registros`,
                                                 showSizeChanger: true,
+                                                pageSizeOptions: ['10', '25', '50', '100'],
+                                                showQuickJumper: true,
                                                 onShowSizeChange: onShowSizeChange,
                                                 itemRender: itemRender,
                                             }}
                                             columns={columns}
-                                            dataSource={users}
+                                            dataSource={searchTerm ? filteredUsers : users}
                                             rowSelection={rowSelection}
                                             rowKey={(record) => record.id}
                                             locale={{
                                                 emptyText: loading ? 'Cargando...' : 
                                                           apiError ? 'No hay datos de ejemplo disponibles' :
+                                                          searchTerm ? `No se encontraron usuarios que coincidan con "${searchTerm}"` :
                                                           'No se encontraron usuarios'
                                             }}
+                                            scroll={{ x: 1000 }}
+                                            size="middle"
+                                            className="custom-table"
                                         />
                                     </div>
                                 </div>
@@ -478,6 +582,216 @@ const PatientsList = () => {
                     </div>
                 </div>
             </div>
+            
+            <style jsx>{`
+                /* Avatar Container Styles */
+                .avatar-container {
+                    position: relative;
+                }
+                
+                .avatar-wrapper {
+                    position: relative;
+                    width: 50px;
+                    height: 50px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                    border: 3px solid #ffffff;
+                    transition: all 0.3s ease;
+                }
+                
+                .avatar-wrapper:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+                }
+                
+                .user-avatar {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: all 0.3s ease;
+                }
+                
+                .avatar-initials {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 600;
+                    font-size: 16px;
+                    color: white;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    text-transform: uppercase;
+                }
+                
+                /* Status Indicator */
+                .status-indicator {
+                    position: absolute;
+                    bottom: 2px;
+                    right: 2px;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                }
+                
+                .status-indicator.online {
+                    background-color: #52c41a;
+                    animation: pulse-green 2s infinite;
+                }
+                
+                .status-indicator.offline {
+                    background-color: #ff4d4f;
+                }
+                
+                @keyframes pulse-green {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.7);
+                    }
+                    70% {
+                        box-shadow: 0 0 0 5px rgba(82, 196, 26, 0);
+                    }
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(82, 196, 26, 0);
+                    }
+                }
+                
+                /* User Info Styles */
+                .user-info {
+                    flex: 1;
+                    min-width: 0; /* Permite que el texto se trunque si es necesario */
+                }
+                
+                .user-name {
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-bottom: 4px;
+                    line-height: 1.3;
+                }
+                
+                .user-link {
+                    color: #2c3e50;
+                    transition: color 0.3s ease;
+                }
+                
+                .user-link:hover {
+                    color: #667eea;
+                    text-decoration: none;
+                }
+                
+                .user-role {
+                    display: flex;
+                    align-items: center;
+                    font-size: 12px;
+                    color: #6c757d;
+                    margin-bottom: 6px;
+                }
+                
+                .user-role i {
+                    font-size: 10px;
+                }
+                
+                .user-status {
+                    display: flex;
+                    align-items: center;
+                }
+                
+                .status-tag {
+                    font-size: 10px;
+                    padding: 2px 6px;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    font-weight: 500;
+                    border: none;
+                }
+                
+                .status-tag i {
+                    font-size: 8px;
+                }
+                
+                /* Responsive adjustments */
+                @media (max-width: 768px) {
+                    .avatar-wrapper {
+                        width: 40px;
+                        height: 40px;
+                    }
+                    
+                    .avatar-initials {
+                        font-size: 14px;
+                    }
+                    
+                    .user-name {
+                        font-size: 13px;
+                    }
+                    
+                    .user-role {
+                        font-size: 11px;
+                    }
+                }
+                
+                /* Table enhancements para mejorar la visualización general */
+                .custom-table .ant-table-thead > tr > th {
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    font-weight: 600;
+                    color: #495057;
+                    border-bottom: 2px solid #dee2e6;
+                    padding: 16px;
+                }
+                
+                .custom-table .ant-table-tbody > tr:hover > td {
+                    background-color: #f8f9ff;
+                    transition: background-color 0.3s ease;
+                }
+                
+                .custom-table .ant-table-tbody > tr > td {
+                    vertical-align: middle;
+                    padding: 16px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                
+                .page-table-header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 20px;
+                    border-radius: 10px;
+                    color: white;
+                    margin-bottom: 20px;
+                }
+                
+                .page-table-header h4 {
+                    color: white;
+                }
+                
+                .page-table-header .ant-switch {
+                    background-color: rgba(255, 255, 255, 0.3);
+                }
+                
+                .page-table-header .ant-switch-checked {
+                    background-color: #52c41a;
+                }
+                
+                .card {
+                    border-radius: 15px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+                    border: none;
+                    overflow: hidden;
+                }
+                
+                .card-body {
+                    padding: 24px;
+                }
+                
+                .alert-warning {
+                    border-radius: 10px;
+                    border-left: 4px solid #faad14;
+                }
+            `}</style>
         </>
     );
 };

@@ -104,6 +104,7 @@ import Profile from "./Profile";
 import Justifications from "./staff/Justifications";
 
 const AppRoutes = [
+  // Rutas generales
   <Route key="attendances" path="/attendances" element={<Attendence />} />,
   <Route key="Justifications" path="/Justifications" element={<Justifications />} />,
   <Route key="server-error" path="/server-error" element={<ServerError />} />,
@@ -111,25 +112,39 @@ const AppRoutes = [
   <Route key="profile" path="/profile" element={<Profile />} />,
   <Route key="settings" path="/settings" element={<Setting />} />,
   <Route key="settingsthem" path="/settingsthem" element={<SettingsThem />} />,
+  
+  // Rutas de Doctores
   <Route key="doctorlist" path="/doctorlist" element={<DoctorList />} />,
   <Route key="add-doctor" path="/add-doctor" element={<AddDoctor />} />,
   <Route key="editdoctor" path="/editdoctor" element={<EditDoctor />} />,
   <Route key="doctorprofile" path="/doctorprofile" element={<DoctorProfile />} />,
   <Route key="doctor-setting" path="/doctor-setting" element={<Doctor_Settings />} />,
+  
+  // Rutas de Pacientes/Usuarios - ACTUALIZADAS
+  <Route key="patients" path="/patients" element={<PatientsList />} />,
   <Route key="patientslist" path="/patientslist" element={<PatientsList />} />,
   <Route key="addpatients" path="/addpatients" element={<AddPatients />} />,
-  // <Route key="editpatients" path="/editpatients" element={<EditPatients />} />, // REMOVIDO
+  <Route key="editpatients" path="/editpatients/:id" element={<AddPatients />} />,
+  // <Route key="editpatients-old" path="/editpatients" element={<EditPatients />} />, // REMOVIDO
   // <Route key="patientsprofile" path="/patientsprofile" element={<PatientsProfile />} />, // REMOVIDO
   // <Route key="patient-settings" path="/patient-settings" element={<Patient_Settings />} />, // REMOVIDO
+  
+  // Rutas de Citas
   <Route key="appoinmentlist" path="/appoinmentlist" element={<AppoinmentList />} />,
   <Route key="addappoinments" path="/addappoinments" element={<AddAppoinments />} />,
   <Route key="editappoinments" path="/editappoinments" element={<EditAppoinments />} />,
+  
+  // Rutas de Horarios
   <Route key="schedulelist" path="/schedulelist" element={<ScheduleList />} />,
   <Route key="addschedule" path="/addschedule" element={<AddSchedule />} />,
   <Route key="editschedule" path="/editschedule" element={<EditSchedule />} />,
+  
+  // Rutas de Departamentos
   <Route key="departmentlist" path="/departmentlist" element={<DepartmentList />} />,
   <Route key="add-department" path="/add-department" element={<AddDepartment />} />,
   <Route key="editdepartment" path="/editdepartment" element={<EditDepartment />} />,
+  
+  // Rutas de Personal
   <Route key="stafflist" path="/stafflist" element={<StaffList />} />,
   <Route key="addstaff" path="/addstaff" element={<AddStaff />} />,
   <Route key="editstaff" path="/editstaff" element={<EditStaff />} />,
@@ -140,6 +155,8 @@ const AppRoutes = [
   <Route key="attendence" path="/attendence" element={<Attendence />} />,
   <Route key="holiday" path="/holiday" element={<Holiday />} />,
   <Route key="staff-settings" path="/staff-settings" element={<Staff_Settings />} />,
+  
+  // Rutas de Cuentas y Finanzas
   <Route key="providentfund" path="/providentfund" element={<ProvidentFund />} />,
   <Route key="add-providerfund" path="/add-providerfund" element={<Add_ProviderFund />} />,
   <Route key="invoicelist" path="/invoicelist" element={<Invoice />} />,
@@ -153,18 +170,26 @@ const AppRoutes = [
   <Route key="addtax" path="/addtax" element={<Add_Tax />} />,
   <Route key="edit-provident" path="/edit-provident" element={<Edit_Provident />} />,
   <Route key="edit-payment" path="/edit-payment" element={<Edit_Payment />} />,
+  
+  // Rutas de Nómina
   <Route key="employeesalary" path="/employeesalary" element={<EmployeeSalary />} />,
   <Route key="addsalary" path="/addsalary" element={<AddEmployeeSalary />} />,
   <Route key="editsalary" path="/editsalary" element={<EditEmployeeSalery />} />,
   <Route key="payslip" path="/payslip" element={<Payslip />} />,
+  
+  // Rutas de Email
   <Route key="inbox" path="/inbox" element={<Inbox />} />,
   <Route key="compose-mail" path="/compose-mail" element={<ComposeMail />} />,
   <Route key="mail-view" path="/mail-view" element={<MailView />} />,
+  
+  // Rutas de Actividad y Reportes
   <Route key="user-activity" path="/user-activity" element={<UserActivity />} />,
   <Route key="expense-Report" path="/expense-Report" element={<ExpensesReport />} />,
   <Route key="add-expense" path="/add-expense" element={<AddExpenses />} />,
   <Route key="invoice-report" path="/invoice-report" element={<Invoice_Report />} />,
   <Route key="edit-expenses" path="/edit-expenses" element={<Edit_Expenses />} />,
+  
+  // Rutas de Facturación
   <Route key="invoice-list" path="/invoice-list" element={<InvoiceList />} />,
   <Route key="paid-invoice" path="/paid-invoice" element={<Paid_Invoice />} />,
   <Route key="overdue-invoice" path="/overdue-invoice" element={<OverDue />} />,
@@ -178,6 +203,8 @@ const AppRoutes = [
   <Route key="invoice-settings" path="/invoice-settings" element={<Invoice_GeneralSettings />} />,
   <Route key="tax-settings" path="/tax-settings" element={<Tax_Settings />} />,
   <Route key="bank-settings" path="/bank-settings" element={<Bank_Settings />} />,
+  
+  // Rutas de UI Elements y Forms
   <Route key="ui-kit" path="/ui-kit" element={<UiKit />} />,
   <Route key="typography" path="/typography" element={<Typography />} />,
   <Route key="basic-input" path="/basic-input" element={<BasicInput />} />,
@@ -186,12 +213,16 @@ const AppRoutes = [
   <Route key="vertical-form" path="/vertical-form" element={<VerticalForm />} />,
   <Route key="basic-table" path="/basic-table" element={<BasicTable />} />,
   <Route key="data-table" path="/data-table" element={<DataTable />} />,
+  
+  // Rutas de Dashboard
   <Route key="admin-dashboard" path="/admin-dashboard" element={<Admin_Dashboard />} />,
+  
   // Rutas de Estudiantes
   <Route key="studentlist" path="/studentlist" element={<StudentList />} />,
   <Route key="add-student" path="/add-student" element={<AddStudent />} />,
   <Route key="editstudent" path="/editstudent/:id" element={<EditStudent />} />,
   <Route key="studentprofile" path="/studentprofile/:id" element={<StudentProfile />} />,
+  
   // Rutas de Matrículas
   <Route key="enrollmentlist" path="/enrollmentlist" element={<EnrollmentList />} />,
   <Route key="add-enrollment" path="/add-enrollment" element={<AddEnrollment />} />,
