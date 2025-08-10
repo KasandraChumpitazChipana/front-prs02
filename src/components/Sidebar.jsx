@@ -163,15 +163,15 @@ const Sidebar = (props) => {
                     <span className="menu-side">
                       <img src={menuicon04} alt="" />
                     </span>
-                    <span> Appointments </span>
+                    <span> Mis documentos </span>
                     <span className="menu-arrow" />
                   </Link>
                   <ul style={{ display: "none" }} className="menu-items4">
                     <li>
-                      <Link className={props?.activeClassName === 'appoinment-list' ? 'active' : ''} to="/appoinmentlist">Appointment List</Link>
+                      <Link className={props?.activeClassName === 'appoinment-list' ? 'active' : ''} to="/appoinmentlist">Documentos</Link>
                     </li>
                     <li>
-                      <Link className={props?.activeClassName === 'add-appoinment' ? 'active' : ''} to="/addappoinments">Add Appointment</Link>
+                      <Link className={props?.activeClassName === 'add-appoinment' ? 'active' : ''} to="/addappoinments">Agregar Documentos</Link>
                     </li>
                     <li>
                       <Link className={props?.activeClassName === 'edit-appoinment' ? 'active' : ''} to="/editappoinments">Edit Appointment</Link>

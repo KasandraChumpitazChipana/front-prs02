@@ -12,9 +12,9 @@ import PatientsList from "./patients/PatientsList";
 import AddPatients from "./patients/AddPatients";
 // import EditPatients from "./patients/EditPatients"; // REMOVIDO
 // import PatientsProfile from "./patients/PatientsProfile"; // REMOVIDO
-import AppoinmentList from "./appoinments/AppoinmentList";
-import AddAppoinments from "./appoinments/AddAppoinments";
-import EditAppoinments from "./appoinments/EditAppoinments";
+import AppoinmentList from "./userdocument/AppoinmentList";
+import AddAppoinments from "./userdocument/AddAppoinments";
+import EditAppoinments from "./userdocument/EditAppoinments";
 //DoctorSchedule
 import ScheduleList from "./doctorschedule/ScheduleList";
 import AddSchedule from "./doctorschedule/AddSchedule";
