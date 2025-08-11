@@ -125,14 +125,17 @@ const AppRoutes = [
   <Route key="patientslist" path="/patientslist" element={<PatientsList />} />,
   <Route key="addpatients" path="/addpatients" element={<AddPatients />} />,
   <Route key="editpatients" path="/editpatients/:id" element={<AddPatients />} />,
-  // <Route key="editpatients-old" path="/editpatients" element={<EditPatients />} />, // REMOVIDO
-  // <Route key="patientsprofile" path="/patientsprofile" element={<PatientsProfile />} />, // REMOVIDO
-  // <Route key="patient-settings" path="/patient-settings" element={<Patient_Settings />} />, // REMOVIDO
   
-  // Rutas de Citas
+  // Rutas de Documentos/Citas - ACTUALIZADAS PARA SOPORTE DE EDICIÓN
   <Route key="appoinmentlist" path="/appoinmentlist" element={<AppoinmentList />} />,
   <Route key="addappoinments" path="/addappoinments" element={<AddAppoinments />} />,
+  <Route key="editappoinments-with-id" path="/editappoinments/:id" element={<AddAppoinments />} />,
   <Route key="editappoinments" path="/editappoinments" element={<EditAppoinments />} />,
+  
+  // Rutas alternativas para documentos (manteniendo compatibilidad)
+  <Route key="user-documents-list" path="/user-documents" element={<AppoinmentList />} />,
+  <Route key="add-user-document" path="/add-user-document" element={<AddAppoinments />} />,
+  <Route key="edit-user-document" path="/edit-user-document/:id" element={<AddAppoinments />} />,
   
   // Rutas de Horarios
   <Route key="schedulelist" path="/schedulelist" element={<ScheduleList />} />,
