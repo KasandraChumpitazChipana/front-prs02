@@ -12,7 +12,7 @@ import {
  */
 export class UserDocumentService {
   constructor() {
-    this.baseUrl = 'https://8086-vallegrande-msuserdocum-u3inuptv0zt.ws-us120.gitpod.io/api/v1/user-documents';
+    this.baseUrl = 'https://8086-vallegrande-msuserdocum-u3inuptv0zt.ws-us121.gitpod.io/api/v1/user-documents';
   }
 
   /**
@@ -177,9 +177,8 @@ export class UserDocumentService {
   }
 
   /**
-   * Activar documento - CORREGIDO
-   * OPCIÓN 1: Usar PATCH en lugar de PUT
-   * PATCH /api/v1/user-documents/{id}/activate
+   * Reactivar documento
+   * PUT /api/v1/user-documents/{id}/activate
    */
   async activateDocument(id) {
     if (!id) {
@@ -187,21 +186,8 @@ export class UserDocumentService {
     }
   
     try {
-      // Opción 1: Intentar con PATCH primero
       const url = `${this.baseUrl}/${id}/activate`;
-      let response = await fetch(url, this.getRequestConfig('PATCH'));
-      
-      // Si PATCH falla, intentar con PUT
-      if (!response.ok && response.status === 405) {
-        console.log('PATCH no soportado, intentando con PUT...');
-        response = await fetch(url, this.getRequestConfig('PUT'));
-      }
-      
-      // Si PUT también falla, intentar con POST
-      if (!response.ok && response.status === 405) {
-        console.log('PUT no soportado, intentando con POST...');
-        response = await fetch(url, this.getRequestConfig('POST'));
-      }
+      const response = await fetch(url, this.getRequestConfig('PUT'));
       
       // Para activar documento, varios códigos de estado son válidos
       if (response.status === 204 || response.status === 200) {
@@ -215,9 +201,8 @@ export class UserDocumentService {
   }
 
   /**
-   * Desactivar documento - CORREGIDO
-   * OPCIÓN 1: Usar PATCH en lugar de DELETE
-   * PATCH /api/v1/user-documents/{id}/deactivate
+   * Desactivar documento
+   * DELETE /api/v1/user-documents/{id}/deactivate
    */
   async deactivateDocument(id) {
     if (!id) {
@@ -225,73 +210,10 @@ export class UserDocumentService {
     }
   
     try {
-      // Opción 1: Intentar con PATCH primero (más semánticamente correcto para cambio de estado)
       const url = `${this.baseUrl}/${id}/deactivate`;
-      let response = await fetch(url, this.getRequestConfig('PATCH'));
-      
-      // Si PATCH falla, intentar con PUT
-      if (!response.ok && response.status === 405) {
-        console.log('PATCH no soportado, intentando con PUT...');
-        response = await fetch(url, this.getRequestConfig('PUT'));
-      }
-      
-      // Si PUT también falla, intentar con POST
-      if (!response.ok && response.status === 405) {
-        console.log('PUT no soportado, intentando con POST...');
-        response = await fetch(url, this.getRequestConfig('POST'));
-      }
+      const response = await fetch(url, this.getRequestConfig('DELETE'));
       
       // Para desactivar documento, varios códigos de estado son válidos
-      if (response.status === 204 || response.status === 200) {
-        return new ApiResponse({ success: true, message: 'Document deactivated successfully' }, null, response.status);
-      }
-      
-      return await this.handleResponse(response);
-    } catch (error) {
-      return new ApiResponse(null, `Network error: ${error.message}`, 0);
-    }
-  }
-
-  /**
-   * MÉTODO ALTERNATIVO: Activar documento usando PUT con body
-   * PUT /api/v1/user-documents/{id} con { status: 'ACTIVE' }
-   */
-  async activateDocumentAlternative(id) {
-    if (!id) {
-      return new ApiResponse(null, 'Document ID is required', 400);
-    }
-
-    try {
-      const url = `${this.baseUrl}/${id}`;
-      const body = { status: 'ACTIVE' };
-      
-      const response = await fetch(url, this.getRequestConfig('PUT', body));
-      
-      if (response.status === 204 || response.status === 200) {
-        return new ApiResponse({ success: true, message: 'Document activated successfully' }, null, response.status);
-      }
-      
-      return await this.handleResponse(response);
-    } catch (error) {
-      return new ApiResponse(null, `Network error: ${error.message}`, 0);
-    }
-  }
-
-  /**
-   * MÉTODO ALTERNATIVO: Desactivar documento usando PUT con body
-   * PUT /api/v1/user-documents/{id} con { status: 'INACTIVE' }
-   */
-  async deactivateDocumentAlternative(id) {
-    if (!id) {
-      return new ApiResponse(null, 'Document ID is required', 400);
-    }
-
-    try {
-      const url = `${this.baseUrl}/${id}`;
-      const body = { status: 'INACTIVE' };
-      
-      const response = await fetch(url, this.getRequestConfig('PUT', body));
-      
       if (response.status === 204 || response.status === 200) {
         return new ApiResponse({ success: true, message: 'Document deactivated successfully' }, null, response.status);
       }
@@ -313,14 +235,7 @@ export class UserDocumentService {
 
     try {
       const url = `${this.baseUrl}/${id}`;
-      let response = await fetch(url, this.getRequestConfig('DELETE'));
-      
-      // Si DELETE falla, intentar con POST a un endpoint específico
-      if (!response.ok && response.status === 405) {
-        console.log('DELETE no soportado, intentando con POST...');
-        const deleteUrl = `${this.baseUrl}/${id}/delete`;
-        response = await fetch(deleteUrl, this.getRequestConfig('POST'));
-      }
+      const response = await fetch(url, this.getRequestConfig('DELETE'));
       
       // Para eliminación física, varios códigos de estado son válidos
       if (response.status === 204 || response.status === 200) {
